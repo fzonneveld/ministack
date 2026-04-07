@@ -7,11 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [1.1.47] — 2026-04-07
 
 ### Added
-- **Step Functions generic `aws-sdk:*` task dispatcher** — Task states can now use `arn:aws:states:::aws-sdk:<service>:<action>` resources to call any JSON-protocol MiniStack service (DynamoDB, SecretsManager, SSM, Logs, Kinesis, Glue, Athena, ECS, ECR, KMS, EventBridge). Query/REST services return clear "not yet supported" errors
-- **Step Functions sync execution error details** — `StartSyncExecution` now returns `error` and `cause` fields for failed executions, matching AWS SFN behaviour
+- **Step Functions generic `aws-sdk:*` task dispatcher** — Task states can now call any MiniStack service via `arn:aws:states:::aws-sdk:<service>:<action>` resource ARNs. Supports all JSON-protocol services (DynamoDB, SecretsManager, ECS, KMS, etc.). Contributed by @jayjanssen (#168)
+- **Step Functions sync execution error details** — `StartSyncExecution` now returns `error` and `cause` fields for failed executions, matching AWS SFN behaviour. Contributed by @jayjanssen
+
+### Fixed
+- **S3 `PutObject` missing `Content-Length: 0` header** — CDK deploy failed with `Expected real number, got implicit NaN` because the JS SDK v3 parsed the missing header as NaN. Reported by @youngkwangk (#160)
+- **README reverts from stale PR branches** — restored Cloud Map, ready.d, persistence list, SFN intrinsics documentation
+
 
 ### Tests
 - 3 new tests: SecretsManager round-trip via aws-sdk, DynamoDB round-trip via aws-sdk, unknown service error handling
