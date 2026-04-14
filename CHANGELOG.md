@@ -367,6 +367,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **Step Functions aws-sdk action casing** — SFN ARNs use camelCase (e.g. `createDBSubnetGroup`) but query-protocol and JSON-protocol services expect PascalCase (`CreateDBSubnetGroup`). Both dispatch paths now capitalize the first letter. Contributed by @jayjanssen (#204, #215).
 - **RDS `_parse_member_list` botocore format** — list parameters dispatched via Step Functions aws-sdk integrations use `Prefix.MemberName.N` format instead of `Prefix.member.N`. The parser now handles both formats.
 
+## Added
+-- **Lambda `invoke` action** - Modified the running of the lambda to always use AWS provided Runtime Interface Emulator images. This way any container image that implements the RIE can be run. Removed the support for running dockers using a wrapper script. Container will be reused if possible. Containers are kept running
+and reference by the sha256 over the code image. In the future this should be a combination of the code image and the config.
 ---
 
 ## [1.1.58] — 2026-04-09

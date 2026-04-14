@@ -700,6 +700,77 @@ docker run -p 4566:4566 \
   ministackorg/ministack
 ```
 
+### Lambdas in docker
+
+To run lambda in docker, the LAMBDA_EXECUTOR needs to be set to "docker". All lambdas will be run in an
+AWS supplied docker image, following docker images are supported:
+   *  "python3.8": "public.ecr.aws/lambda/python:3.8"
+   *  "python3.9": "public.ecr.aws/lambda/python:3.9"
+   *  "python3.10": "public.ecr.aws/lambda/python:3.10"
+   *  "python3.11": "public.ecr.aws/lambda/python:3.11"
+   *  "python3.12": "public.ecr.aws/lambda/python:3.12"
+   *  "python3.13": "public.ecr.aws/lambda/python:3.13"
+   *  "python3.14": "public.ecr.aws/lambda/python:3.14"
+   *  "nodejs14.x": "public.ecr.aws/lambda/nodejs:14"
+   *  "nodejs16.x": "public.ecr.aws/lambda/nodejs:16"
+   *  "nodejs18.x": "public.ecr.aws/lambda/nodejs:18"
+   *  "nodejs20.x": "public.ecr.aws/lambda/nodejs:20"
+   *  "nodejs22.x": "public.ecr.aws/lambda/nodejs:22"
+   *  "nodejs24.x": "public.ecr.aws/lambda/nodejs:24"
+   *  "provided.al2023": "public.ecr.aws/lambda/provided:al2023"
+   *  "provided.al2": "public.ecr.aws/lambda/provided:al2"
+   *  "provided": "public.ecr.aws/lambda/provided:latest"
+
+Docker containers for lambda are name lambda-<random-hex-16>.
+
+Docker containers are always kept "warm", and reused when possible. This means that containers
+created for lambdas need to be killed manually.
+
+Additionally a volume is needed to mount the code (and extra layers). This must be set with
+the LAMBDA_REMOTE_DOCKER_VOLUME_MOUNT environment variable. This must be a named volume (managed by docker).
+
+If a ministack is not running on the default network, LAMBDA_DOCKER_NETWORK needs to be set, which will attach
+the lambda to this network, making it posssible to access ministack (AWS) resources from the lambda.
+
+Example docker compose file:
+```
+services:
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: infra_ministack
+    entrypoint: ["python", "-m", "uvicorn", "ministack.app:app", "--host", "0.0.0.0", "--port", "4566"]
+    networks:
+      infra-network:
+    healthcheck:
+      test: "python -c "import urllib.request; urllib.request.urlopen('http://localhost:4566/_ministack/health')" || exit 1"
+      interval: 10s
+      timeout: 2s
+      start_period: 5s
+      retries: 3
+    ports:
+      - "4566:4566"
+    environment:
+      DOCKER_SOCK: ${DOCKER_SOCK:-/var/run/docker.sock}
+      LAMBDA_EXECUTOR: docker
+      LAMBDA_DOCKER_NETWORK: ${COMPOSE_PROJECT_NAME}_infra-network
+      LAMBDA_REMOTE_DOCKER_VOLUME_MOUNT: "{COMPOSE_PROJECT_NAME}_lambda-docker-volume"
+      AWS_DEFAULT_REGION: ${AWS_REGION:-eu-central-1}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-my_secret}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-my_key}
+      AWS_ENDPOINT_URL: http://localstack:4566
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "lambda-docker-volume:/var/task"
+
+volumes:
+  lambda-docker-volume:
+
+networks:
+  infra-network:
+```
+
+Option prvivileged set to "true" is needed if /var/run/docker.sock is root owned.
+
 ### Lambda Warm Starts
 
 MiniStack keeps Python and Node.js Lambda functions warm between invocations. After the first call (cold start), the handler module stays loaded in a persistent subprocess. Subsequent calls skip the import/require step, matching real AWS warm-start behaviour and making test suites significantly faster.
